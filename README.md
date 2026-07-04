@@ -1,7 +1,6 @@
-# **lit: Your project best friend 🥇**
+# **lit: code linter**
 ### **What's 'lit'? ❓**
-CLI Tool developed 100% in Golang in order to help you get quick information about your scripts in determined languages. Thus, it can be really helpful for big work enviroments in order to improve productivity or detect code anomalies,
-getting warnings about possible dangerous code.
+CLI Tool developed 100% in Golang in order to help you get quick information about your scripts in determined languages. Thus, it can be really helpful for big work enviroments in order to improve productivity or detect code anomalies, getting warnings about possible dangerous code.
 
 I used hexagonal architecture on the project, learning about mantainable software architectures.
 
@@ -28,7 +27,7 @@ To set the project up in your machine and start scanning your projects, you must
 - Download the latest release .zip (which contains the executable and the configuration file).
 - Unzip the file and set the directory into the program files of yours system.
 - Create a enviroment variable pointing to the directory path of your system (so you can just write 'lit' to use it).
-- Confirm the changes and start using lit ♥️.
+- Confirm the changes and start using lit.
 
 ### **Available commands 🌝**
 - *lit files*: The brain and main command of this project. This command itself scans your whole repository and finds the scripts of the supported languages, scanning and looking for possible dangerous functions defined
@@ -45,8 +44,3 @@ To set the project up in your machine and start scanning your projects, you must
 ### Why was this developed?
 I developed ***Lit*** because I wanted to reinforce my Go knowledge by creating a useful and meaningful project that developers like me could use in their development projects to keep the code cleaner. Writing clean but efficient code is very important
 because the code will always be read by developers and they must understand it. Developing this project I learned about go routines and how powerful they are, also, I was able to reinforce my Go knowledge and now I feel ready to start bigger projects.
-
-### Support the project ♥️
-Your **star ⭐** in the repository would be more than enough.
-
-**Project open for contributions. Pull-requests are welcome :D.**
