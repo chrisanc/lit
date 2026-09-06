@@ -3,6 +3,7 @@ package exporter
 import (
 	"CLI_App/internal/domain"
 	"encoding/json"
+	"fmt"
 )
 
 // OASIS SARIF v2.1.0 Schema Structs
@@ -93,7 +94,7 @@ func (s *SarifExporter) Export(results map[string][]*domain.FunctionData) ([]byt
 		},
 	}
 
-	var sarifResults []SarifResult
+	sarifResults := []SarifResult{}
 
 	for filePath, functions := range results {
 		for _, fn := range functions {
@@ -111,7 +112,7 @@ func (s *SarifExporter) Export(results map[string][]*domain.FunctionData) ([]byt
 				sarifResults = append(sarifResults, SarifResult{
 					RuleID:    "LIT001",
 					Level:     "warning",
-					Message:   SarifMessage{Text: "Function '" + fn.Name + "' has cyclomatic complexity of " + uintToString(fn.Complexity)},
+					Message:   SarifMessage{Text: fmt.Sprintf("Function '%s' has cyclomatic complexity of %d", fn.Name, fn.Complexity)},
 					Locations: []SarifLocation{location},
 				})
 			}
@@ -119,8 +120,8 @@ func (s *SarifExporter) Export(results map[string][]*domain.FunctionData) ([]byt
 			if fn.InvalidNames > 0 {
 				sarifResults = append(sarifResults, SarifResult{
 					RuleID:    "LIT002",
-					Level:     "note",
-					Message:   SarifMessage{Text: "Function '" + fn.Name + "' contains " + uintToString(fn.InvalidNames) + " identifiers violating naming conventions"},
+					Level:     "warning",
+					Message:   SarifMessage{Text: fmt.Sprintf("Function '%s' contains %d identifier naming convention violations", fn.Name, fn.InvalidNames)},
 					Locations: []SarifLocation{location},
 				})
 			}
@@ -128,8 +129,8 @@ func (s *SarifExporter) Export(results map[string][]*domain.FunctionData) ([]byt
 			if fn.TotalParams > 4 {
 				sarifResults = append(sarifResults, SarifResult{
 					RuleID:    "LIT003",
-					Level:     "note",
-					Message:   SarifMessage{Text: "Function '" + fn.Name + "' accepts " + uintToString(fn.TotalParams) + " parameters"},
+					Level:     "warning",
+					Message:   SarifMessage{Text: fmt.Sprintf("Function '%s' accepts %d parameters", fn.Name, fn.TotalParams)},
 					Locations: []SarifLocation{location},
 				})
 			}
@@ -137,8 +138,8 @@ func (s *SarifExporter) Export(results map[string][]*domain.FunctionData) ([]byt
 			if fn.Size > 50 {
 				sarifResults = append(sarifResults, SarifResult{
 					RuleID:    "LIT004",
-					Level:     "note",
-					Message:   SarifMessage{Text: "Function '" + fn.Name + "' spans " + uintToString(fn.Size) + " lines of code"},
+					Level:     "warning",
+					Message:   SarifMessage{Text: fmt.Sprintf("Function '%s' spans %d lines of code", fn.Name, fn.Size)},
 					Locations: []SarifLocation{location},
 				})
 			}
@@ -164,18 +165,4 @@ func (s *SarifExporter) Export(results map[string][]*domain.FunctionData) ([]byt
 	}
 
 	return json.MarshalIndent(report, "", "  ")
-}
-
-func uintToString(n uint) string {
-	if n == 0 {
-		return "0"
-	}
-	var buf [20]byte
-	i := len(buf)
-	for n > 0 {
-		i--
-		buf[i] = byte('0' + n%10)
-		n /= 10
-	}
-	return string(buf[i:])
 }

@@ -13,3 +13,8 @@ type CacheStore[T comparable, R any] interface {
 	GetCache(T) (R, bool)
 	SetCache(T, R)
 }
+
+type ReportExporter interface {
+	Export(results map[string][]*FunctionData) ([]byte, error)
+}
+

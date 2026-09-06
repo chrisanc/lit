@@ -5,9 +5,7 @@ import (
 	"fmt"
 )
 
-type ReportExporter interface {
-	Export(results map[string][]*domain.FunctionData) ([]byte, error)
-}
+type ReportExporter = domain.ReportExporter
 
 func GetExporter(format string) (ReportExporter, error) {
 	switch format {

@@ -38,12 +38,8 @@ func Files() *cobra.Command {
 				scanner.PrintFixResults()
 			default:
 				scanner.ScanFiles(cmd.Context())
-				if formatFlag != "text" || outputFlag != "" {
-					if err := scanner.ExportResults(formatFlag, outputFlag); err != nil {
-						cmd.PrintErrln("Export error:", err)
-					}
-				} else {
-					scanner.PrintScanningResults()
+				if err := scanner.ExportResults(formatFlag, outputFlag); err != nil {
+					cmd.PrintErrln("Export error:", err)
 				}
 			}
 		},

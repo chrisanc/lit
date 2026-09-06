@@ -68,7 +68,7 @@ func GetAlertsConfig() domain.Alerts {
 func readValue[T uint | int8](message string, lowRange, highRange T) T {
 	input := lowRange - 1
 	for input < lowRange || input > highRange {
-		fmt.Printf(message)
+		fmt.Print(message)
 		fmt.Scan(&input)
 		clearScreen(osClear[runtime.GOOS][0], osClear[runtime.GOOS][1:]...)
 		if input < lowRange || input > highRange {
