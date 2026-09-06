@@ -1,0 +1,48 @@
+name: 'Lit Static Analysis & AST Linter'
+description: 'Runs Lit AST static analysis, evaluates cyclomatic complexity, and exports SARIF reports to GitHub Code Scanning.'
+author: 'chrisanc'
+branding:
+  icon: 'code'
+  color: 'orange'
+
+inputs:
+  go-version:
+    description: 'Go version to build Lit CLI'
+    required: false
+    default: '1.22'
+  format:
+    description: 'Report output format (sarif, json, markdown, text)'
+    required: false
+    default: 'sarif'
+  output-file:
+    description: 'File path to save the generated report'
+    required: false
+    default: 'lit-results.sarif.json'
+  upload-sarif:
+    description: 'Whether to upload SARIF results to GitHub Code Scanning Security tab (true/false)'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ inputs.go-version }}
+
+    - name: Build Lit CLI Engine
+      shell: bash
+      run: |
+        go build -o /tmp/lit ${{ github.action_path }}/main.go
+
+    - name: Execute Lit Static Analysis
+      shell: bash
+      run: |
+        /tmp/lit scan --format=${{ inputs.format }} -o ${{ inputs.output-file }}
+
+    - name: Upload SARIF to GitHub Code Scanning Security Tab
+      if: ${{ inputs.format == 'sarif' && inputs.upload-sarif == 'true' }}
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ inputs.output-file }}

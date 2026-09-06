@@ -1,0 +1,24 @@
+name: Example PR Code Quality Workflow
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lit-analysis:
+    name: Lit AST Analysis & Code Security Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout PR Codebase
+        uses: actions/checkout@v4
+
+      - name: Run Lit Action
+        uses: ./
+        with:
+          format: 'sarif'
+          output-file: 'lit-results.sarif.json'
+          upload-sarif: 'false'
