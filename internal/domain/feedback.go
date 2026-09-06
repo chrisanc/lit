@@ -1,9 +1,12 @@
 package domain
 
+import "sync"
+
 // Feedback is used to send messages to the user when a something is >= value
 type Feedback struct {
 	configAdapter *Config
 	messages      map[string][]Message
+	once          sync.Once
 }
 
 type Message struct {
@@ -12,17 +15,15 @@ type Message struct {
 }
 
 func NewFeedback(configAdapter *Config) *Feedback {
-	return &Feedback{
+	f := &Feedback{
 		configAdapter: configAdapter,
-		messages:      make(map[string][]Message),
 	}
+	f.setMessages()
+	return f
 }
 
 func (f *Feedback) GetMessages() map[string][]Message {
-	if len(f.messages) < 1 {
-		f.setMessages()
-	}
-
+	f.once.Do(f.setMessages)
 	return f.messages
 }
 
