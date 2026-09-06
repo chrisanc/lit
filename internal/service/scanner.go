@@ -1,7 +1,7 @@
 package service
 
 import (
-	"CLI_App/cmd/domain"
+	"CLI_App/internal/domain"
 	"fmt"
 	"path/filepath"
 	"regexp"

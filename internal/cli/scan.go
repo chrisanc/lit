@@ -1,10 +1,10 @@
-package commands
+package cli
 
 import (
-	"CLI_App/cmd/adapters/analysis/languages"
-	"CLI_App/cmd/adapters/config"
-	"CLI_App/cmd/domain"
-	"CLI_App/cmd/service"
+	"CLI_App/internal/adapters/analysis/languages"
+	"CLI_App/internal/adapters/config"
+	"CLI_App/internal/domain"
+	"CLI_App/internal/service"
 
 	"github.com/spf13/cobra"
 )
@@ -18,10 +18,12 @@ func Files() *cobra.Command {
 			fix, _ := cmd.Flags().GetBool("fix")
 
 			configAdapter := config.NewJSONAdapter()
+			cfg := configAdapter.GetConfig()
 			scanner := service.NewScannerService(
 				languages.NewFileAnalyzer(
-					domain.Conventions[configAdapter.GetConfig().NamingConventionIndex-1],
-					domain.NewFeedback(configAdapter.GetConfig()),
+					domain.Conventions[cfg.NamingConventionIndex-1],
+					domain.NewFeedback(cfg),
+					cfg.NamingConventionIndex,
 				),
 			)
 

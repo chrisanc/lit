@@ -1,8 +1,7 @@
 package analysis
 
 import (
-	"CLI_App/cmd/adapters/analysis/types"
-	"CLI_App/cmd/adapters/config"
+	"CLI_App/internal/adapters/analysis/types"
 	"strings"
 )
 
@@ -12,14 +11,16 @@ import (
 
 // FileModifier is an adapter for modifying data into the code script. This way, we can manage the file modification safely
 type FileModifier struct {
-	management    types.NodeManagement
-	activePattern string
+	management            types.NodeManagement
+	activePattern         string
+	namingConventionIndex int8
 }
 
-func NewFileModifier(management types.NodeManagement, activePattern string) FileModifier {
+func NewFileModifier(management types.NodeManagement, activePattern string, namingConventionIndex int8) FileModifier {
 	return FileModifier{
-		management:    management,
-		activePattern: activePattern,
+		management:            management,
+		activePattern:         activePattern,
+		namingConventionIndex: namingConventionIndex,
 	}
 }
 
@@ -54,7 +55,7 @@ func (f FileModifier) ModifyVariableName(code *[]string) int {
 			value = 0
 		}
 		oldName := strings.Trim((*code)[node.StartPosition().Row][int(node.StartPosition().Column)+value:int(node.EndPosition().Column)+value], "_")
-		newName := refactorVarName(GetTokens(oldName))
+		newName := refactorVarName(GetTokens(oldName), f.namingConventionIndex)
 
 		row := (*code)[node.StartPosition().Row]
 
@@ -107,11 +108,10 @@ func GetTokens(line string) []string {
 }
 
 // refactorVarName: with the strings split in tokens, returns a []byte of the new line of code.
-func refactorVarName(tokens []string) string {
+func refactorVarName(tokens []string, namingConventionIndex int8) string {
 	var newName = tokens[0]
 
-	jsonAdapter := config.NewJSONAdapter()
-	switch jsonAdapter.GetConfig().NamingConventionIndex {
+	switch namingConventionIndex {
 	case 2:
 		newName = ""
 		camelCases(&newName, tokens)

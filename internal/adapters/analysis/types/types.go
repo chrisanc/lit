@@ -1,7 +1,7 @@
 package types
 
 import (
-	"CLI_App/cmd/domain"
+	"CLI_App/internal/domain"
 
 	tree "github.com/tree-sitter/go-tree-sitter"
 )

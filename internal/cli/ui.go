@@ -1,7 +1,7 @@
-package ui
+package cli
 
 import (
-	"CLI_App/cmd/domain"
+	"CLI_App/internal/domain"
 	"fmt"
 	"os"
 	"os/exec"

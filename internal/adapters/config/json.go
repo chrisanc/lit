@@ -1,7 +1,7 @@
 package config
 
 import (
-	"CLI_App/cmd/domain"
+	"CLI_App/internal/domain"
 	encoder "encoding/json"
 	"fmt"
 	"os"

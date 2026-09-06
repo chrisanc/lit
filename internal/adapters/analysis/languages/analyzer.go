@@ -1,21 +1,23 @@
 package languages
 
 import (
-	"CLI_App/cmd/adapters/analysis"
-	"CLI_App/cmd/adapters/analysis/types"
-	"CLI_App/cmd/domain"
+	"CLI_App/internal/adapters/analysis"
+	"CLI_App/internal/adapters/analysis/types"
+	"CLI_App/internal/domain"
 	"path/filepath"
 )
 
 type FileAnalyzer struct {
-	activePattern string
-	feedback      *domain.Feedback
+	activePattern         string
+	feedback              *domain.Feedback
+	namingConventionIndex int8
 }
 
-func NewFileAnalyzer(activePattern string, feedback *domain.Feedback) *FileAnalyzer {
+func NewFileAnalyzer(activePattern string, feedback *domain.Feedback, namingConventionIndex int8) *FileAnalyzer {
 	return &FileAnalyzer{
-		activePattern: activePattern,
-		feedback:      feedback,
+		activePattern:         activePattern,
+		feedback:              feedback,
+		namingConventionIndex: namingConventionIndex,
 	}
 }
 
@@ -47,7 +49,7 @@ func (analyzer *FileAnalyzer) AnalyzeFile(filePath string, code *[]string) []*do
 
 func (analyzer *FileAnalyzer) FixFile(filePath string, code *[]string) int {
 	activeLanguage := analyzer.getLanguage(filepath.Ext(filePath)[1:])
-	writer := analysis.NewFileModifier(activeLanguage, analyzer.activePattern)
+	writer := analysis.NewFileModifier(activeLanguage, analyzer.activePattern, analyzer.namingConventionIndex)
 	return writer.ModifyVariableName(code)
 }
 

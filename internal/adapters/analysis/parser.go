@@ -1,8 +1,8 @@
 package analysis
 
 import (
-	"CLI_App/cmd/adapters/analysis/types"
-	"CLI_App/cmd/domain"
+	"CLI_App/internal/adapters/analysis/types"
+	"CLI_App/internal/domain"
 	"fmt"
 	"os"
 	"strings"

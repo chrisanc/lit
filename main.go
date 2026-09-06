@@ -1,9 +1,10 @@
 package main
 
 import (
-	cmd "CLI_App/cmd/lit/commands"
+	"CLI_App/internal/cli"
 )
 
 func main() {
-	cmd.Execute()
+	cli.Execute()
 }
+
