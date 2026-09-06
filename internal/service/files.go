@@ -13,30 +13,26 @@ import (
 func GetDirEntries(name string) []os.DirEntry {
 	files, err := os.ReadDir(name)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error reading the file structure: ", err)
-		os.Exit(1)
+		return nil
 	}
 	return files
 }
 
 // GetWorkingDirectory Method to return the current working directory
 func GetWorkingDirectory() string {
-	// Get the working directory (where we are executing the commands)
 	path, err := os.Getwd()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error with the path: ", err)
-		os.Exit(1)
+		fmt.Fprintln(os.Stderr, "Error getting working directory: ", err)
+		return "."
 	}
-
-	// If everything went right, we return the path of the wd
 	return path
 }
 
 func ReadFile(name string) []byte {
 	file, err := os.ReadFile(name)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading the file %s. Please report the issue.\n", name)
-		os.Exit(1)
+		fmt.Fprintf(os.Stderr, "Error reading the file %s: %v\n", name, err)
+		return nil
 	}
 	return file
 }
@@ -44,7 +40,7 @@ func ReadFile(name string) []byte {
 func WriteOnFile(path string, data []byte) {
 	err := os.WriteFile(path, data, 0644)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error trying to write the variable name into the file...")
-		os.Exit(1)
+		fmt.Fprintf(os.Stderr, "Error writing to file %s: %v\n", path, err)
 	}
 }
+

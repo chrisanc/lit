@@ -2,54 +2,66 @@ package service
 
 import (
 	"CLI_App/internal/domain"
+	"context"
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 )
 
 // ScanService defines a service (use case) for the file scanning
 type ScanService struct {
-	wg                 sync.WaitGroup
 	mu                 sync.Mutex
 	analyzer           domain.Analyzer
 	dangerousFunctions map[string][]*domain.FunctionData
 	languagesMap       map[string]int
+	workersCount       int
 }
 
 func NewScannerService(analyzer domain.Analyzer) ScanService {
+	workers := runtime.NumCPU() * 2
+	if workers < 4 {
+		workers = 4
+	}
 	return ScanService{
 		analyzer:           analyzer,
 		dangerousFunctions: make(map[string][]*domain.FunctionData),
 		languagesMap:       make(map[string]int),
+		workersCount:       workers,
 	}
 }
 
-// ScanFiles starts the scanning process. Entry point
-func (s *ScanService) ScanFiles() {
-	s.traverseFiles(s.scanFile, domain.ScanValidScriptPattern)
+// SetWorkers allows configuring the worker pool concurrency size
+func (s *ScanService) SetWorkers(count int) {
+	if count > 0 {
+		s.workersCount = count
+	}
 }
 
-// ExecuteLOC starts the scanning process for the loc data. Entry point.
-func (s *ScanService) ExecuteLOC() {
-	s.traverseFiles(s.loc, domain.LocValidScriptPattern)
+// ScanFiles starts the scanning process with context support. Entry point.
+func (s *ScanService) ScanFiles(ctx context.Context) {
+	s.traverseFiles(ctx, s.scanFile, domain.ScanValidScriptPattern)
 }
 
-// FixFile fixes the name of certain variables
-func (s *ScanService) FixFile() {
-	s.traverseFiles(s.fixFile, domain.ScanValidScriptPattern)
+// ExecuteLOC starts the scanning process for the loc data with context support. Entry point.
+func (s *ScanService) ExecuteLOC(ctx context.Context) {
+	s.traverseFiles(ctx, s.loc, domain.LocValidScriptPattern)
+}
+
+// FixFile fixes the name of certain variables with context support.
+func (s *ScanService) FixFile(ctx context.Context) {
+	s.traverseFiles(ctx, s.fixFile, domain.ScanValidScriptPattern)
 }
 
 // Internal functions to analyze code
 func (s *ScanService) scanFile(filename string, code *[]string) {
-	defer s.wg.Done()
 	if code == nil {
 		return
 	}
-	// Execute the file analyzer algorithm (infrastructure because it's using frameworks)
 	functions := s.analyzer.AnalyzeFile(filename, code)
-	if functions != nil && len(functions) > 0 {
+	if len(functions) > 0 {
 		s.mu.Lock()
 		s.dangerousFunctions[filename] = functions
 		s.mu.Unlock()
@@ -57,67 +69,123 @@ func (s *ScanService) scanFile(filename string, code *[]string) {
 }
 
 func (s *ScanService) loc(filename string, code *[]string) {
-	defer s.wg.Done()
-	// Sum up the stored value with the total lines found in that script.
-	s.mu.Lock()
-	s.languagesMap[filepath.Ext(filename)[1:]] += len(*code)
-	s.mu.Unlock()
+	if code == nil {
+		return
+	}
+	ext := filepath.Ext(filename)
+	if len(ext) > 1 {
+		s.mu.Lock()
+		s.languagesMap[ext[1:]] += len(*code)
+		s.mu.Unlock()
+	}
 }
 
 func (s *ScanService) fixFile(filename string, code *[]string) {
-	defer s.wg.Done()
-	s.languagesMap[filename] += s.analyzer.FixFile(filename, code)
-	WriteOnFile(filename, []byte(strings.Join(*code, "\n")))
+	if code == nil {
+		return
+	}
+	modified := s.analyzer.FixFile(filename, code)
+	if modified > 0 {
+		s.mu.Lock()
+		s.languagesMap[filename] += modified
+		s.mu.Unlock()
+		WriteOnFile(filename, []byte(strings.Join(*code, "\n")))
+	}
 }
 
-// Navigate through the file system with a DFS algorithm.
-func (s *ScanService) traverseFiles(fileFunction func(filename string, code *[]string), validScriptPattern string) {
+// Navigate through the file system with a bounded worker pool and context cancellation.
+func (s *ScanService) traverseFiles(ctx context.Context, fileFunction func(filename string, code *[]string), validScriptPattern string) {
+	jobs := make(chan string, 100)
+	var workerWg sync.WaitGroup
+
+	// Launch bounded worker pool
+	for i := 0; i < s.workersCount; i++ {
+		workerWg.Add(1)
+		go func() {
+			defer workerWg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case path, ok := <-jobs:
+					if !ok {
+						return
+					}
+					rawBytes := ReadFile(path)
+					if rawBytes == nil {
+						continue
+					}
+					lines := strings.Split(string(rawBytes), "\n")
+					fileFunction(path, &lines)
+				}
+			}
+		}()
+	}
+
+	// DFS directory traversal pushing file paths to worker queue
 	stack := []domain.Directory{{"", GetDirEntries(GetWorkingDirectory())}}
+Loop:
 	for len(stack) > 0 {
-		// Extract the last element from the stack
+		select {
+		case <-ctx.Done():
+			break Loop
+		default:
+		}
+
 		files := stack[len(stack)-1]
-		// Remove the last element from the stack (the files we just iterated).
 		stack = stack[:len(stack)-1]
+
 		for _, v := range files.Content {
-			// Check out if the current position contains a file or a directory
+			select {
+			case <-ctx.Done():
+				break Loop
+			default:
+			}
+
 			if v.IsDir() {
-				// If we should ignore a directory based on our regex, we do.
 				if r, _ := regexp.Match(domain.NotValidDirPattern, []byte(v.Name())); r {
 					continue
 				}
-				fmt.Println("Reading", files.DirName+v.Name()+"/")
-				dir := GetDirEntries(files.DirName + v.Name() + "/")
-				stack = append(stack, domain.Directory{DirName: files.DirName + v.Name() + "/", Content: dir})
+				dirPath := files.DirName + v.Name() + "/"
+				dir := GetDirEntries(dirPath)
+				if dir != nil {
+					stack = append(stack, domain.Directory{DirName: dirPath, Content: dir})
+				}
 			} else {
-				// Check if the current file is a programming language script
 				if r, _ := regexp.Match(validScriptPattern, []byte(v.Name())); !r {
 					continue
 				}
-				// Create the file path
 				path := files.DirName + v.Name()
-
-				file := strings.Split(string(ReadFile(path)), "\n")
-
-				s.wg.Add(1)
-				go fileFunction(path, &file)
+				select {
+				case jobs <- path:
+				case <-ctx.Done():
+					break Loop
+				}
 			}
 		}
 	}
-	s.wg.Wait()
+
+	close(jobs)
+	workerWg.Wait()
 }
 
 // PrintLOCResults prints out the results of the loc execution
 func (s *ScanService) PrintLOCResults() {
 	var totalLines float64
 	fmt.Println()
-	fmt.Println("Results (language - > total lines of code)")
+	fmt.Println("Results (language -> total lines of code)")
 
 	for _, v := range s.languagesMap {
 		totalLines += float64(v)
 	}
 
+	if totalLines == 0 {
+		fmt.Println("No matching files found.")
+		return
+	}
+
 	for key, value := range s.languagesMap {
-		fmt.Printf("%s - > %d (%.1f%%)\n", key, value, (float64(value)*100)/totalLines)
+		fmt.Printf("%s -> %d (%.1f%%)\n", key, value, (float64(value)*100)/totalLines)
 	}
 }
 
@@ -142,6 +210,6 @@ func (s *ScanService) PrintScanningResults() {
 
 func (s *ScanService) PrintFixResults() {
 	for key, value := range s.languagesMap {
-		fmt.Printf("%s - > %d names modified.\n", key, value)
+		fmt.Printf("%s -> %d names modified.\n", key, value)
 	}
 }

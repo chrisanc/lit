@@ -29,13 +29,13 @@ func Files() *cobra.Command {
 
 			switch {
 			case loc:
-				scanner.ExecuteLOC()
+				scanner.ExecuteLOC(cmd.Context())
 				scanner.PrintLOCResults()
 			case fix:
-				scanner.FixFile()
+				scanner.FixFile(cmd.Context())
 				scanner.PrintFixResults()
 			default:
-				scanner.ScanFiles()
+				scanner.ScanFiles(cmd.Context())
 				scanner.PrintScanningResults()
 			}
 		},
