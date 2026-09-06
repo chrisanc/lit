@@ -1,4 +1,4 @@
-package service_test
+package tests
 
 import (
 	"CLI_App/internal/adapters/analysis/languages"
