@@ -10,33 +10,36 @@ import (
 )
 
 type golang struct {
-	data types.LanguageData
+	data           types.LanguageData
+	ignoredSymbols []string
 }
 
-func NewGolangLanguage(varPattern, funcPattern string) types.NodeManagement {
+func NewGolangLanguage(varPattern, funcPattern string, ignoredSymbols []string) types.NodeManagement {
 	g := &golang{
 		data: types.LanguageData{
 			Language: tree.NewLanguage(goGrammar.Language()),
 		},
+		ignoredSymbols: ignoredSymbols,
 	}
 	g.data.Queries = buildGolangQuery() + g.GetVarAppearancesQuery(varPattern) + g.GetFuncAppearancesQuery(funcPattern)
 	return g
 }
 
 func (g golang) ManageNode(captureNames []string, node tree.QueryCapture, nodeInfo *domain.FunctionData, source []byte) {
-	alternative := node.Node.ChildByFieldName("alternative")
 	captureName := captureNames[node.Index]
 
 	if captureName == "variable.name" || captureName == "function.name" {
 		varName := node.Node.Utf8Text(source)
-		if !domain.IsBuiltinSymbol("go", varName) {
+		if !domain.IsBuiltinSymbol("go", varName) && !domain.IsIgnoredSymbol(varName, g.ignoredSymbols) {
 			nodeInfo.UpdateInvalidNames()
 		}
 		return
 	}
 
+	alternative := node.Node.ChildByFieldName("alternative")
+	parent := node.Node.Parent()
 	switch {
-	case node.Node.GrammarName() == "binary_expression" && node.Node.Parent().GrammarName() == "expression_list":
+	case parent != nil && node.Node.GrammarName() == "binary_expression" && parent.GrammarName() == "expression_list":
 		return
 	case alternative != nil && alternative.GrammarName() == "block":
 		nodeInfo.Complexity++
@@ -64,12 +67,12 @@ func (g golang) GetLanguageData() types.LanguageData {
 }
 
 func (g golang) GetVarAppearancesQuery(varPattern string) string {
-	return fmt.Sprintf(" (short_var_declaration left: (expression_list (identifier) @variable.name) (#not-match? @variable.name \"^%s|%s$\"))", varPattern, domain.AllowNonNamedVar) +
-		fmt.Sprintf(" (var_spec name: (identifier) @variable.name (#not-match? @variable.name \"^%s|%s$\"))", varPattern, domain.AllowNonNamedVar) +
-		fmt.Sprintf(" (parameter_declaration name: (identifier) @variable.name (#not-match? @variable.name \"^%s|%s$\"))", varPattern, domain.AllowNonNamedVar)
+	return fmt.Sprintf(" (short_var_declaration left: (expression_list (identifier) @variable.name) (#not-match? @variable.name \"%s|%s\"))", varPattern, domain.AllowNonNamedVar) +
+		fmt.Sprintf(" (var_spec name: (identifier) @variable.name (#not-match? @variable.name \"%s|%s\"))", varPattern, domain.AllowNonNamedVar) +
+		fmt.Sprintf(" (parameter_declaration name: (identifier) @variable.name (#not-match? @variable.name \"%s|%s\"))", varPattern, domain.AllowNonNamedVar)
 }
 
 func (g golang) GetFuncAppearancesQuery(funcPattern string) string {
-	return fmt.Sprintf(" (function_declaration name: (identifier) @function.name (#not-match? @function.name \"^%s|%s$\"))", funcPattern, domain.AllowNonNamedVar) +
-		fmt.Sprintf(" (method_declaration name: (field_identifier) @function.name (#not-match? @function.name \"^%s|%s$\"))", funcPattern, domain.AllowNonNamedVar)
+	return fmt.Sprintf(" (function_declaration name: (identifier) @function.name (#not-match? @function.name \"%s|%s\"))", funcPattern, domain.AllowNonNamedVar) +
+		fmt.Sprintf(" (method_declaration name: (field_identifier) @function.name (#not-match? @function.name \"%s|%s\"))", funcPattern, domain.AllowNonNamedVar)
 }

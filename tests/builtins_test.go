@@ -13,24 +13,24 @@ func TestBuiltinSymbols(t *testing.T) {
 	}{
 		// Python
 		{"py", "__init__", true},
-		{"py", "print", true},
+		{".py", "print", true},
 		{"py", "len", true},
 		{"py", "my_custom_var", false},
 		// JavaScript
 		{"js", "console", true},
-		{"js", "document", true},
+		{".js", "document", true},
 		{"js", "customFunction", false},
 		// JSX
 		{"jsx", "useState", true},
-		{"jsx", "React", true},
+		{".jsx", "React", true},
 		{"jsx", "myComponent", false},
 		// Go
 		{"go", "main", true},
-		{"go", "append", true},
+		{".go", "append", true},
 		{"go", "myStruct", false},
 		// Java
 		{"java", "toString", true},
-		{"java", "System", true},
+		{".java", "System", true},
 		{"java", "myField", false},
 	}
 
@@ -43,7 +43,7 @@ func TestBuiltinSymbols(t *testing.T) {
 }
 
 func TestIgnoredSymbols(t *testing.T) {
-	ignored := []string{"_unused", "vendor_", "INTERNAL"}
+	ignored := []string{"_unused", "vendor_", "INTERNAL", "", "  "}
 
 	tests := []struct {
 		symbol   string

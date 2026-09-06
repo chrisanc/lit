@@ -45,7 +45,7 @@ var sampleJSCode = []string{
 }
 
 func BenchmarkASTParser_Go(b *testing.B) {
-	lang := languages.NewGolangLanguage("^[a-z]+$", "^[a-z]+$")
+	lang := languages.NewGolangLanguage("^[a-z]+$", "^[a-z]+$", nil)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -54,7 +54,7 @@ func BenchmarkASTParser_Go(b *testing.B) {
 }
 
 func BenchmarkASTParser_Python(b *testing.B) {
-	lang := languages.NewPythonLanguage("^[a-z]+$", "^[a-z]+$")
+	lang := languages.NewPythonLanguage("^[a-z]+$", "^[a-z]+$", nil)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -63,7 +63,7 @@ func BenchmarkASTParser_Python(b *testing.B) {
 }
 
 func BenchmarkASTParser_JS(b *testing.B) {
-	lang := languages.NewJSLanguage("^[a-z]+$", "^[a-z]+$")
+	lang := languages.NewJSLanguage("js", "^[a-z]+$", "^[a-z]+$", nil)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {

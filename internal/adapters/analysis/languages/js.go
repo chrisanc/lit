@@ -10,14 +10,18 @@ import (
 )
 
 type javascript struct {
-	data types.LanguageData
+	data           types.LanguageData
+	ext            string
+	ignoredSymbols []string
 }
 
-func NewJSLanguage(varPattern, funcPattern string) types.NodeManagement {
+func NewJSLanguage(ext, varPattern, funcPattern string, ignoredSymbols []string) types.NodeManagement {
 	js := &javascript{
 		data: types.LanguageData{
 			Language: tree.NewLanguage(jsGrammar.Language()),
 		},
+		ext:            ext,
+		ignoredSymbols: ignoredSymbols,
 	}
 	js.data.Queries = buildJSQuery() + js.GetVarAppearancesQuery(varPattern) + js.GetFuncAppearancesQuery(funcPattern)
 	return js
@@ -27,12 +31,13 @@ func (js javascript) ManageNode(captureNames []string, node tree.QueryCapture, n
 	captureName := captureNames[node.Index]
 	if captureName == "variable.name" || captureName == "function.name" {
 		varName := node.Node.Utf8Text(source)
-		if !domain.IsBuiltinSymbol("js", varName) {
+		if !domain.IsBuiltinSymbol(js.ext, varName) && !domain.IsBuiltinSymbol("js", varName) && !domain.IsIgnoredSymbol(varName, js.ignoredSymbols) {
 			nodeInfo.UpdateInvalidNames()
 		}
 		return
 	}
-	if node.Node.GrammarName() == "binary_expression" && node.Node.Parent().GrammarName() == "variable_declarator" {
+	parent := node.Node.Parent()
+	if parent != nil && node.Node.GrammarName() == "binary_expression" && parent.GrammarName() == "variable_declarator" {
 		return
 	}
 	nodeInfo.Complexity++
@@ -65,11 +70,11 @@ func (js javascript) GetLanguageData() types.LanguageData {
 }
 
 func (js javascript) GetVarAppearancesQuery(varPattern string) string {
-	return fmt.Sprintf(" (variable_declarator name: (identifier) @variable.name (#not-match? @variable.name \"^%s|%s$\"))", varPattern, domain.AllowNonNamedVar) +
-		fmt.Sprintf(" (formal_parameters (identifier) @variable.name (#not-match? @variable.name \"^%s|%s$\"))", varPattern, domain.AllowNonNamedVar)
+	return fmt.Sprintf(" (variable_declarator name: (identifier) @variable.name (#not-match? @variable.name \"%s|%s\"))", varPattern, domain.AllowNonNamedVar) +
+		fmt.Sprintf(" (formal_parameters (identifier) @variable.name (#not-match? @variable.name \"%s|%s\"))", varPattern, domain.AllowNonNamedVar)
 }
 
 func (js javascript) GetFuncAppearancesQuery(funcPattern string) string {
-	return fmt.Sprintf(" (function_declaration name: (identifier) @function.name (#not-match? @function.name \"^%s|%s$\"))", funcPattern, domain.AllowNonNamedVar) +
-		fmt.Sprintf(" (method_definition name: (property_identifier) @function.name (#not-match? @function.name \"^%s|%s$\"))", funcPattern, domain.AllowNonNamedVar)
+	return fmt.Sprintf(" (function_declaration name: (identifier) @function.name (#not-match? @function.name \"%s|%s\"))", funcPattern, domain.AllowNonNamedVar) +
+		fmt.Sprintf(" (method_definition name: (property_identifier) @function.name (#not-match? @function.name \"%s|%s\"))", funcPattern, domain.AllowNonNamedVar)
 }

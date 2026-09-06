@@ -82,13 +82,13 @@ func (analyzer *FileAnalyzer) FixFile(filePath string, code *[]string) int {
 func (analyzer *FileAnalyzer) getLanguage(ext string) types.NodeManagement {
 	switch ext {
 	case "js", "jsx":
-		return NewJSLanguage(analyzer.varPattern, analyzer.funcPattern)
+		return NewJSLanguage(ext, analyzer.varPattern, analyzer.funcPattern, analyzer.ignoredSymbols)
 	case "go":
-		return NewGolangLanguage(analyzer.varPattern, analyzer.funcPattern)
+		return NewGolangLanguage(analyzer.varPattern, analyzer.funcPattern, analyzer.ignoredSymbols)
 	case "java":
-		return NewJavaLanguage(analyzer.varPattern, analyzer.funcPattern)
+		return NewJavaLanguage(analyzer.varPattern, analyzer.funcPattern, analyzer.ignoredSymbols)
 	case "py":
-		return NewPythonLanguage(analyzer.varPattern, analyzer.funcPattern)
+		return NewPythonLanguage(analyzer.varPattern, analyzer.funcPattern, analyzer.ignoredSymbols)
 	default:
 		return nil
 	}

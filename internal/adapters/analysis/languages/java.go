@@ -10,33 +10,36 @@ import (
 )
 
 type java struct {
-	data types.LanguageData
+	data           types.LanguageData
+	ignoredSymbols []string
 }
 
-func NewJavaLanguage(varPattern, funcPattern string) types.NodeManagement {
+func NewJavaLanguage(varPattern, funcPattern string, ignoredSymbols []string) types.NodeManagement {
 	j := &java{
 		data: types.LanguageData{
 			Language: tree.NewLanguage(javaGrammar.Language()),
 		},
+		ignoredSymbols: ignoredSymbols,
 	}
 	j.data.Queries = buildJavaQuery() + j.GetVarAppearancesQuery(varPattern) + j.GetFuncAppearancesQuery(funcPattern)
 	return j
 }
 
 func (j java) ManageNode(captureNames []string, node tree.QueryCapture, nodeInfo *domain.FunctionData, source []byte) {
-	alternative := node.Node.ChildByFieldName("alternative")
 	captureName := captureNames[node.Index]
 
 	if captureName == "variable.name" || captureName == "function.name" {
 		varName := node.Node.Utf8Text(source)
-		if !domain.IsBuiltinSymbol("java", varName) {
+		if !domain.IsBuiltinSymbol("java", varName) && !domain.IsIgnoredSymbol(varName, j.ignoredSymbols) {
 			nodeInfo.UpdateInvalidNames()
 		}
 		return
 	}
 
+	alternative := node.Node.ChildByFieldName("alternative")
+	parent := node.Node.Parent()
 	switch {
-	case node.Node.GrammarName() == "binary_expression" && node.Node.Parent().GrammarName() == "variable_declarator":
+	case parent != nil && node.Node.GrammarName() == "binary_expression" && parent.GrammarName() == "variable_declarator":
 		return
 	case alternative != nil && alternative.GrammarName() == "block":
 		nodeInfo.Complexity++
@@ -66,10 +69,10 @@ func (j java) GetLanguageData() types.LanguageData {
 }
 
 func (j java) GetVarAppearancesQuery(varPattern string) string {
-	return fmt.Sprintf(" (variable_declarator name: (identifier) @variable.name (#not-match? @variable.name \"^%s|%s$\"))", varPattern, domain.AllowNonNamedVar) +
-		fmt.Sprintf(" (formal_parameter name: (identifier) @variable.name (#not-match? @variable.name \"^%s|%s$\"))", varPattern, domain.AllowNonNamedVar)
+	return fmt.Sprintf(" (variable_declarator name: (identifier) @variable.name (#not-match? @variable.name \"%s|%s\"))", varPattern, domain.AllowNonNamedVar) +
+		fmt.Sprintf(" (formal_parameter name: (identifier) @variable.name (#not-match? @variable.name \"%s|%s\"))", varPattern, domain.AllowNonNamedVar)
 }
 
 func (j java) GetFuncAppearancesQuery(funcPattern string) string {
-	return fmt.Sprintf(" (method_declaration name: (identifier) @function.name (#not-match? @function.name \"^%s|%s$\"))", funcPattern, domain.AllowNonNamedVar)
+	return fmt.Sprintf(" (method_declaration name: (identifier) @function.name (#not-match? @function.name \"%s|%s\"))", funcPattern, domain.AllowNonNamedVar)
 }

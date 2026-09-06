@@ -10,14 +10,16 @@ import (
 )
 
 type python struct {
-	data types.LanguageData
+	data           types.LanguageData
+	ignoredSymbols []string
 }
 
-func NewPythonLanguage(varPattern, funcPattern string) types.NodeManagement {
+func NewPythonLanguage(varPattern, funcPattern string, ignoredSymbols []string) types.NodeManagement {
 	p := &python{
 		data: types.LanguageData{
 			Language: tree.NewLanguage(pyGrammar.Language()),
 		},
+		ignoredSymbols: ignoredSymbols,
 	}
 	p.data.Queries = buildPythonQuery() + p.GetVarAppearancesQuery(varPattern) + p.GetFuncAppearancesQuery(funcPattern)
 	return p
@@ -27,12 +29,13 @@ func (p python) ManageNode(captureNames []string, node tree.QueryCapture, nodeIn
 	captureName := captureNames[node.Index]
 	if captureName == "variable.name" || captureName == "function.name" {
 		varName := node.Node.Utf8Text(source)
-		if !domain.IsBuiltinSymbol("py", varName) {
+		if !domain.IsBuiltinSymbol("py", varName) && !domain.IsIgnoredSymbol(varName, p.ignoredSymbols) {
 			nodeInfo.UpdateInvalidNames()
 		}
 		return
 	}
-	if node.Node.GrammarName() == "boolean_operator" && node.Node.Parent().GrammarName() == "assignment" {
+	parent := node.Node.Parent()
+	if parent != nil && node.Node.GrammarName() == "boolean_operator" && parent.GrammarName() == "assignment" {
 		return
 	}
 	nodeInfo.Complexity++
@@ -57,11 +60,11 @@ func (p python) GetLanguageData() types.LanguageData {
 }
 
 func (p python) GetVarAppearancesQuery(varPattern string) string {
-	return fmt.Sprintf(" (assignment left: (identifier) @variable.name (#not-match? @variable.name \"^%s|%s$\"))", varPattern, domain.AllowNonNamedVar) +
-		fmt.Sprintf(" (parameters (identifier) @variable.name (#not-match? @variable.name \"^%s|%s$\"))", varPattern, domain.AllowNonNamedVar) +
-		fmt.Sprintf(" (for_statement left: (identifier) @variable.name (#not-match? @variable.name \"^%s|%s$\"))", varPattern, domain.AllowNonNamedVar)
+	return fmt.Sprintf(" (assignment left: (identifier) @variable.name (#not-match? @variable.name \"%s|%s\"))", varPattern, domain.AllowNonNamedVar) +
+		fmt.Sprintf(" (parameters (identifier) @variable.name (#not-match? @variable.name \"%s|%s\"))", varPattern, domain.AllowNonNamedVar) +
+		fmt.Sprintf(" (for_statement left: (identifier) @variable.name (#not-match? @variable.name \"%s|%s\"))", varPattern, domain.AllowNonNamedVar)
 }
 
 func (p python) GetFuncAppearancesQuery(funcPattern string) string {
-	return fmt.Sprintf(" (function_definition name: (identifier) @function.name (#not-match? @function.name \"^%s|%s$\"))", funcPattern, domain.AllowNonNamedVar)
+	return fmt.Sprintf(" (function_definition name: (identifier) @function.name (#not-match? @function.name \"%s|%s\"))", funcPattern, domain.AllowNonNamedVar)
 }

@@ -57,7 +57,7 @@ var BuiltinSymbolSet = map[string]map[string]struct{}{
 
 // IsBuiltinSymbol performs an O(1) set lookup to check if a symbol is a language built-in or dunder method.
 func IsBuiltinSymbol(langExt, symbol string) bool {
-	ext := strings.ToLower(langExt)
+	ext := strings.TrimPrefix(strings.ToLower(langExt), ".")
 	if set, ok := BuiltinSymbolSet[ext]; ok {
 		_, exists := set[symbol]
 		return exists
@@ -68,6 +68,10 @@ func IsBuiltinSymbol(langExt, symbol string) bool {
 // IsIgnoredSymbol checks if a symbol is in the user-configured ignored symbols list.
 func IsIgnoredSymbol(symbol string, userIgnored []string) bool {
 	for _, ign := range userIgnored {
+		ign = strings.TrimSpace(ign)
+		if ign == "" {
+			continue
+		}
 		if ign == symbol || strings.HasPrefix(symbol, ign) {
 			return true
 		}
