@@ -18,6 +18,7 @@ type ScanService struct {
 	analyzer           domain.Analyzer
 	dangerousFunctions map[string][]*domain.FunctionData
 	languagesMap       map[string]int
+	diffsMap           map[string]string
 	workersCount       int
 }
 
@@ -30,6 +31,7 @@ func NewScannerService(analyzer domain.Analyzer) ScanService {
 		analyzer:           analyzer,
 		dangerousFunctions: make(map[string][]*domain.FunctionData),
 		languagesMap:       make(map[string]int),
+		diffsMap:           make(map[string]string),
 		workersCount:       workers,
 	}
 }
@@ -51,9 +53,13 @@ func (s *ScanService) ExecuteLOC(ctx context.Context) {
 	s.traverseFiles(ctx, s.loc, domain.LocValidScriptPattern)
 }
 
-// FixFile fixes the name of certain variables with context support.
-func (s *ScanService) FixFile(ctx context.Context) {
-	s.traverseFiles(ctx, s.fixFile, domain.ScanValidScriptPattern)
+// FixFile fixes the name of certain variables with context and dryRun support.
+func (s *ScanService) FixFile(ctx context.Context, dryRun bool) {
+	if dryRun {
+		s.traverseFiles(ctx, s.fixFileDryRun, domain.ScanValidScriptPattern)
+	} else {
+		s.traverseFiles(ctx, s.fixFile, domain.ScanValidScriptPattern)
+	}
 }
 
 // Internal functions to analyze code
@@ -91,6 +97,24 @@ func (s *ScanService) fixFile(filename string, code *[]string) {
 		s.languagesMap[filename] += modified
 		s.mu.Unlock()
 		WriteOnFile(filename, []byte(strings.Join(*code, "\n")))
+	}
+}
+
+func (s *ScanService) fixFileDryRun(filename string, code *[]string) {
+	if code == nil {
+		return
+	}
+	// Copy original code lines
+	original := make([]string, len(*code))
+	copy(original, *code)
+
+	modified := s.analyzer.FixFile(filename, code)
+	if modified > 0 {
+		diff := GenerateUnifiedDiff(filename, original, *code, true)
+		s.mu.Lock()
+		s.languagesMap[filename] += modified
+		s.diffsMap[filename] = diff
+		s.mu.Unlock()
 	}
 }
 
@@ -236,8 +260,25 @@ func (s *ScanService) ExportResults(format, outputPath string) error {
 	return nil
 }
 
-func (s *ScanService) PrintFixResults() {
-	for key, value := range s.languagesMap {
-		fmt.Printf("%s -> %d names modified.\n", key, value)
+func (s *ScanService) PrintFixResults(dryRun bool) {
+	if dryRun {
+		fmt.Println()
+		fmt.Println("--- DRY RUN: Unified Git Diff Preview ---")
+		totalFiles := 0
+		totalMods := 0
+		for file, diff := range s.diffsMap {
+			totalFiles++
+			totalMods += s.languagesMap[file]
+			fmt.Println(diff)
+		}
+		if totalFiles == 0 {
+			fmt.Println("No variable naming fixes required.")
+		} else {
+			fmt.Printf("[Dry Run Complete] Previewed %d variable naming changes across %d file(s). No files were modified on disk.\n", totalMods, totalFiles)
+		}
+	} else {
+		for key, value := range s.languagesMap {
+			fmt.Printf("%s -> %d names modified.\n", key, value)
+		}
 	}
 }
