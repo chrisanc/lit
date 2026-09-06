@@ -1,6 +1,7 @@
 package service
 
 import (
+	"CLI_App/internal/adapters/exporter"
 	"CLI_App/internal/domain"
 	"context"
 	"fmt"
@@ -206,6 +207,33 @@ func (s *ScanService) PrintScanningResults() {
 			fmt.Println(item.Feedback)
 		}
 	}
+}
+
+func (s *ScanService) GetDangerousFunctions() map[string][]*domain.FunctionData {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.dangerousFunctions
+}
+
+func (s *ScanService) ExportResults(format, outputPath string) error {
+	exp, err := exporter.GetExporter(format)
+	if err != nil {
+		return err
+	}
+
+	data, err := exp.Export(s.GetDangerousFunctions())
+	if err != nil {
+		return fmt.Errorf("error generating %s report: %w", format, err)
+	}
+
+	if outputPath != "" {
+		WriteOnFile(outputPath, data)
+		fmt.Printf("Report exported successfully to %s (%s format)\n", outputPath, format)
+	} else {
+		fmt.Println(string(data))
+	}
+
+	return nil
 }
 
 func (s *ScanService) PrintFixResults() {

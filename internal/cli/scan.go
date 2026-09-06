@@ -16,6 +16,8 @@ func Files() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			loc, _ := cmd.Flags().GetBool("loc")
 			fix, _ := cmd.Flags().GetBool("fix")
+			formatFlag, _ := cmd.Flags().GetString("format")
+			outputFlag, _ := cmd.Flags().GetString("output")
 
 			configAdapter := config.NewJSONAdapter()
 			cfg := configAdapter.GetConfig()
@@ -36,13 +38,21 @@ func Files() *cobra.Command {
 				scanner.PrintFixResults()
 			default:
 				scanner.ScanFiles(cmd.Context())
-				scanner.PrintScanningResults()
+				if formatFlag != "text" || outputFlag != "" {
+					if err := scanner.ExportResults(formatFlag, outputFlag); err != nil {
+						cmd.PrintErrln("Export error:", err)
+					}
+				} else {
+					scanner.PrintScanningResults()
+				}
 			}
 		},
 	}
 	command.Flags().Bool("loc", false, "Retrieves the languages used with statistics")
 	command.Flags().Bool("fix", false, "Fixes up the variables with an invalid naming conventions."+
 		"It only one convention to another\nExample: if you have variables snake_case and the active convention is camelCase, it's converted.")
+	command.Flags().StringP("format", "f", "text", "Output report format (text, sarif, json, markdown)")
+	command.Flags().StringP("output", "o", "", "Path to write report output file (defaults to stdout)")
 
 	return command
 }
