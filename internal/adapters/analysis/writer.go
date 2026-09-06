@@ -88,44 +88,43 @@ func (f FileModifier) ModifyVariableName(code *[]string) int {
 
 // GetTokens : get the tokens of a variable name (without underscore or upper chars). Two pointers approach
 func GetTokens(line string) []string {
-	// slice to save up the indexes
+	if len(line) == 0 {
+		return nil
+	}
 	var tokens []string
-	// define the two pointers (slow and fast) for the algorithm
-	var (
-		i, j int
-	)
+	var i, j int
 
-	// iterate through the variable name
 	for j < len(line) {
-		// if we detect an upper character or an underscore, we get inside
-		if line[j] == 95 || line[j] >= 60 && line[j] <= 90 && j > 0 {
-			// set up the substring
-			tokens = append(tokens, strings.ToLower(line[i:j]))
-			// move the fast pointer to a letter
-			for line[j] == 95 {
+		if line[j] == 95 || (line[j] >= 65 && line[j] <= 90 && j > 0) {
+			if i < j {
+				tokens = append(tokens, strings.ToLower(line[i:j]))
+			}
+			for j < len(line) && line[j] == 95 {
 				j++
 			}
-			// set the slow pointer in the position of the fast one
 			i = j
-			// move the pointer one position
 			j++
 		} else {
-			// if it is a normal character, we just move the fast pointer
 			j++
 		}
 	}
 
-	// check if the original variable started with an uppercase char (to set it that way)
-	if line[0] >= 65 && line[0] <= 90 {
+	if i < len(line) {
+		tokens = append(tokens, strings.ToLower(line[i:]))
+	}
+
+	if len(tokens) > 0 && line[0] >= 65 && line[0] <= 90 {
 		tokens[0] = string(tokens[0][0]-32) + tokens[0][1:]
 	}
 
-	// set up the rest of the tokens and return it
-	return append(tokens, strings.ToLower(line[i:]))
+	return tokens
 }
 
 // refactorVarName: with the strings split in tokens, returns a []byte of the new line of code.
 func refactorVarName(tokens []string, namingConventionIndex int8) string {
+	if len(tokens) == 0 {
+		return ""
+	}
 	var newName = tokens[0]
 
 	switch namingConventionIndex {
@@ -133,7 +132,9 @@ func refactorVarName(tokens []string, namingConventionIndex int8) string {
 		newName = ""
 		camelCases(&newName, tokens)
 	case 1, 3:
-		camelCases(&newName, tokens[1:])
+		if len(tokens) > 1 {
+			camelCases(&newName, tokens[1:])
+		}
 	case 4:
 		for _, token := range tokens[1:] {
 			newName += "_" + token
