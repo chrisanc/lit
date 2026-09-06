@@ -46,7 +46,6 @@ func (f FileModifier) ModifyVariableName(code *[]string) int {
 		if match == nil {
 			break
 		}
-		totalWrongNames++
 		copyOf := *match
 		// get the node from the captures (just one capture per match)
 		node := copyOf.Captures[0].Node
@@ -73,9 +72,12 @@ func (f FileModifier) ModifyVariableName(code *[]string) int {
 			continue
 		}
 		newName := refactorVarName(GetTokens(oldName), f.namingConventionIndex)
+		if oldName == newName || newName == "" {
+			continue
+		}
 
+		totalWrongNames++
 		row := (*code)[rowIdx]
-
 		(*code)[rowIdx] = row[:startCol] + newName + row[endCol:]
 
 		localCache[rowIdx] += len(newName) - int(node.EndPosition().Column-node.StartPosition().Column)
@@ -114,7 +116,7 @@ func GetTokens(line string) []string {
 	}
 
 	if len(tokens) > 0 && line[0] >= 65 && line[0] <= 90 {
-		tokens[0] = string(tokens[0][0]-32) + tokens[0][1:]
+		tokens[0] = strings.ToUpper(tokens[0][:1]) + tokens[0][1:]
 	}
 
 	return tokens
@@ -145,10 +147,12 @@ func refactorVarName(tokens []string, namingConventionIndex int8) string {
 
 // function with the logics for the camelCase and CamelCase conversions
 func camelCases(target *string, tokens []string) {
-	if len(tokens) < 0 {
+	if len(tokens) == 0 {
 		return
 	}
 	for _, token := range tokens {
-		*target += string(token[0]-32) + token[1:]
+		if len(token) > 0 {
+			*target += strings.ToUpper(token[:1]) + token[1:]
+		}
 	}
 }
