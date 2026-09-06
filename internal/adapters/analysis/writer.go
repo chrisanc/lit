@@ -50,18 +50,35 @@ func (f FileModifier) ModifyVariableName(code *[]string) int {
 		copyOf := *match
 		// get the node from the captures (just one capture per match)
 		node := copyOf.Captures[0].Node
-		value, ok := localCache[node.StartPosition().Row]
+		rowIdx := node.StartPosition().Row
+		if int(rowIdx) >= len(*code) {
+			continue
+		}
+
+		value, ok := localCache[rowIdx]
 		if !ok {
 			value = 0
 		}
-		oldName := strings.Trim((*code)[node.StartPosition().Row][int(node.StartPosition().Column)+value:int(node.EndPosition().Column)+value], "_")
+
+		lineLen := len((*code)[rowIdx])
+		startCol := int(node.StartPosition().Column) + value
+		endCol := int(node.EndPosition().Column) + value
+
+		if startCol < 0 || startCol >= lineLen || endCol < startCol || endCol > lineLen {
+			continue
+		}
+
+		oldName := strings.Trim((*code)[rowIdx][startCol:endCol], "_")
+		if oldName == "" {
+			continue
+		}
 		newName := refactorVarName(GetTokens(oldName), f.namingConventionIndex)
 
-		row := (*code)[node.StartPosition().Row]
+		row := (*code)[rowIdx]
 
-		(*code)[node.StartPosition().Row] = row[:int(node.StartPosition().Column)+value] + newName + row[int(node.EndPosition().Column)+value:]
+		(*code)[rowIdx] = row[:startCol] + newName + row[endCol:]
 
-		localCache[node.StartPosition().Row] += len(newName) - int(node.EndPosition().Column-node.StartPosition().Column)
+		localCache[rowIdx] += len(newName) - int(node.EndPosition().Column-node.StartPosition().Column)
 	}
 
 	return totalWrongNames

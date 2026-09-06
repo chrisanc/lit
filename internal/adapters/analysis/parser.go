@@ -74,8 +74,13 @@ func CyclicalComplexity(languageInfo types.NodeManagement, code *[]string) []*do
 		case query.CaptureNames()[copyOf.Captures[0].Index] == "function":
 			Stack = append(Stack, &domain.FunctionData{Complexity: 1})
 			// Add the initial data to the object reference in the stack
+			nameRow := copyOf.Captures[1].Node.StartPosition().Row
+			var nameStr string
+			if int(nameRow) < len(*code) {
+				nameStr = safeSlice((*code)[nameRow], copyOf.Captures[1].Node.StartPosition().Column, copyOf.Captures[1].Node.EndPosition().Column)
+			}
 			Stack[len(Stack)-1].AddInitialData(
-				"Method "+(*code)[copyOf.Captures[1].Node.StartPosition().Row][copyOf.Captures[1].Node.StartPosition().Column:copyOf.Captures[1].Node.EndPosition().Column],
+				"Method "+nameStr,
 				copyOf.Captures[2].Node.NamedChildCount(),
 				copyOf.Captures[3].Node.StartByte(), copyOf.Captures[3].Node.EndByte(),
 				copyOf.Captures[3].Node.EndPosition().Row-copyOf.Captures[3].Node.StartPosition().Row,
@@ -84,8 +89,13 @@ func CyclicalComplexity(languageInfo types.NodeManagement, code *[]string) []*do
 
 		case query.CaptureNames()[copyOf.Captures[0].Index] == "model":
 			Stack = append(Stack, &domain.FunctionData{Complexity: 1})
+			nameRow := copyOf.Captures[1].Node.StartPosition().Row
+			var nameStr string
+			if int(nameRow) < len(*code) {
+				nameStr = safeSlice((*code)[nameRow], copyOf.Captures[1].Node.StartPosition().Column, copyOf.Captures[1].Node.EndPosition().Column)
+			}
 			Stack[len(Stack)-1].AddInitialData(
-				"Model "+(*code)[copyOf.Captures[1].Node.StartPosition().Row][copyOf.Captures[1].Node.StartPosition().Column:copyOf.Captures[1].Node.EndPosition().Column],
+				"Model "+nameStr,
 				0, copyOf.Captures[0].Node.StartByte(), copyOf.Captures[0].Node.EndByte(),
 				copyOf.Captures[0].Node.EndPosition().Row-copyOf.Captures[0].Node.StartPosition().Row,
 				domain.Point(copyOf.Captures[0].Node.StartPosition()),
@@ -126,4 +136,14 @@ func CyclicalComplexity(languageInfo types.NodeManagement, code *[]string) []*do
 
 	// If there's any function still on the stack, we copy it into the Functions slice.
 	return append(Functions, Stack...)
+}
+
+func safeSlice(line string, start, end uint) string {
+	if int(start) >= len(line) {
+		return ""
+	}
+	if int(end) > len(line) || end < start {
+		end = uint(len(line))
+	}
+	return line[start:end]
 }

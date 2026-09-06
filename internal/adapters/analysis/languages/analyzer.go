@@ -23,15 +23,28 @@ func NewFileAnalyzer(activePattern string, feedback *domain.Feedback, namingConv
 
 // AnalyzeFile analyses the file via DFS (is executed in the scanner)
 func (analyzer *FileAnalyzer) AnalyzeFile(filePath string, code *[]string) []*domain.FunctionData {
-	// Set the variable to save up the language of the current script
-	activeLanguage := analyzer.getLanguage(filepath.Ext(filePath)[1:])
+	ext := filepath.Ext(filePath)
+	if len(ext) <= 1 {
+		return nil
+	}
+	activeLanguage := analyzer.getLanguage(ext[1:])
+	if activeLanguage == nil {
+		return nil
+	}
 
 	// Calculate the cyclical complexity and get the functions returned
 	functions := analysis.CyclicalComplexity(activeLanguage, code)
+	if functions == nil {
+		return nil
+	}
 
 	messages := analyzer.feedback.GetMessages()
 	i := 0
 	for i < len(functions) {
+		if functions[i] == nil {
+			functions = append(functions[:i], functions[i+1:]...)
+			continue
+		}
 		if functions[i].TotalParams < messages["parameters"][0].MinValue &&
 			functions[i].Size < messages["size"][0].MinValue &&
 			functions[i].Complexity < messages["complexity"][0].MinValue &&
@@ -48,7 +61,14 @@ func (analyzer *FileAnalyzer) AnalyzeFile(filePath string, code *[]string) []*do
 }
 
 func (analyzer *FileAnalyzer) FixFile(filePath string, code *[]string) int {
-	activeLanguage := analyzer.getLanguage(filepath.Ext(filePath)[1:])
+	ext := filepath.Ext(filePath)
+	if len(ext) <= 1 {
+		return 0
+	}
+	activeLanguage := analyzer.getLanguage(ext[1:])
+	if activeLanguage == nil {
+		return 0
+	}
 	writer := analysis.NewFileModifier(activeLanguage, analyzer.activePattern, analyzer.namingConventionIndex)
 	return writer.ModifyVariableName(code)
 }

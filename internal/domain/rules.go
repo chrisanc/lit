@@ -7,14 +7,15 @@ import "regexp"
 // ScanValidScriptPattern for the regex that validates scripts for the scanner.
 // Only contains the languages supported for scanning
 var ScanValidScriptPattern = "^[a-zA-Z0-9._-]+\\.(py|js|java|jsx|go)$"
-
-// LocValidScriptPattern validates the scripts for the loc.
 var LocValidScriptPattern = "^[a-zA-Z0-9._-]+\\.(py|go|java|js|jsx|dart|c|cpp|css|html|ts|md)$"
-
-// NotValidDirPattern for the regex that validates you won´t visit unwanted sites.
-// Only contains unwanted directories and files.
 var NotValidDirPattern = "^(node_modules|.*\\.exe|target|venv|__pycache__|" +
 	"\\.(git|idea|mvn|cmd))$"
+
+var (
+	ScanValidScriptRegexp = regexp.MustCompile(ScanValidScriptPattern)
+	LocValidScriptRegexp  = regexp.MustCompile(LocValidScriptPattern)
+	NotValidDirRegexp     = regexp.MustCompile(NotValidDirPattern)
+)
 
 // Variable names conventions. For good practices and consistency on the variable names of the project
 

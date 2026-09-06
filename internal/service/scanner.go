@@ -45,20 +45,20 @@ func (s *ScanService) SetWorkers(count int) {
 
 // ScanFiles starts the scanning process with context support. Entry point.
 func (s *ScanService) ScanFiles(ctx context.Context) {
-	s.traverseFiles(ctx, s.scanFile, domain.ScanValidScriptPattern)
+	s.traverseFiles(ctx, s.scanFile, domain.ScanValidScriptRegexp)
 }
 
 // ExecuteLOC starts the scanning process for the loc data with context support. Entry point.
 func (s *ScanService) ExecuteLOC(ctx context.Context) {
-	s.traverseFiles(ctx, s.loc, domain.LocValidScriptPattern)
+	s.traverseFiles(ctx, s.loc, domain.LocValidScriptRegexp)
 }
 
 // FixFile fixes the name of certain variables with context and dryRun support.
 func (s *ScanService) FixFile(ctx context.Context, dryRun bool) {
 	if dryRun {
-		s.traverseFiles(ctx, s.fixFileDryRun, domain.ScanValidScriptPattern)
+		s.traverseFiles(ctx, s.fixFileDryRun, domain.ScanValidScriptRegexp)
 	} else {
-		s.traverseFiles(ctx, s.fixFile, domain.ScanValidScriptPattern)
+		s.traverseFiles(ctx, s.fixFile, domain.ScanValidScriptRegexp)
 	}
 }
 
@@ -110,7 +110,7 @@ func (s *ScanService) fixFileDryRun(filename string, code *[]string) {
 
 	modified := s.analyzer.FixFile(filename, code)
 	if modified > 0 {
-		diff := GenerateUnifiedDiff(filename, original, *code, true)
+		diff := GenerateUnifiedDiff(filename, original, *code)
 		s.mu.Lock()
 		s.languagesMap[filename] += modified
 		s.diffsMap[filename] = diff
@@ -119,7 +119,7 @@ func (s *ScanService) fixFileDryRun(filename string, code *[]string) {
 }
 
 // Navigate through the file system with a bounded worker pool and context cancellation.
-func (s *ScanService) traverseFiles(ctx context.Context, fileFunction func(filename string, code *[]string), validScriptPattern string) {
+func (s *ScanService) traverseFiles(ctx context.Context, fileFunction func(filename string, code *[]string), validScriptRegexp *regexp.Regexp) {
 	jobs := make(chan string, 100)
 	var workerWg sync.WaitGroup
 
@@ -168,7 +168,7 @@ Loop:
 			}
 
 			if v.IsDir() {
-				if r, _ := regexp.Match(domain.NotValidDirPattern, []byte(v.Name())); r {
+				if domain.NotValidDirRegexp.MatchString(v.Name()) {
 					continue
 				}
 				dirPath := files.DirName + v.Name() + "/"
@@ -177,7 +177,7 @@ Loop:
 					stack = append(stack, domain.Directory{DirName: dirPath, Content: dir})
 				}
 			} else {
-				if r, _ := regexp.Match(validScriptPattern, []byte(v.Name())); !r {
+				if !validScriptRegexp.MatchString(v.Name()) {
 					continue
 				}
 				path := files.DirName + v.Name()
