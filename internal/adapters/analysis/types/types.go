@@ -6,15 +6,16 @@ import (
 	tree "github.com/tree-sitter/go-tree-sitter"
 )
 
-// LanguageData - > struct made to register the language an all it's complements (used by the parser)
+// LanguageData registers the language and its compiled query definitions.
 type LanguageData struct {
 	Language *tree.Language
 	Queries  string
 }
 
-// NodeManagement defines the functions every language struct uses
+// NodeManagement defines the methods every language implementation uses.
 type NodeManagement interface {
-	ManageNode(captureNames []string, node tree.QueryCapture, nodeInfo *domain.FunctionData)
+	ManageNode(captureNames []string, node tree.QueryCapture, nodeInfo *domain.FunctionData, source []byte)
 	GetLanguageData() LanguageData
-	GetVarAppearancesQuery(pattern string) string
+	GetVarAppearancesQuery(varPattern string) string
+	GetFuncAppearancesQuery(funcPattern string) string
 }

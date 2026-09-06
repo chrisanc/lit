@@ -26,7 +26,7 @@ func TestScannerExportResults(t *testing.T) {
 		},
 	}
 
-	analyzer := languages.NewFileAnalyzer(domain.Conventions[0], domain.NewFeedback(cfg), 1)
+	analyzer := languages.NewFileAnalyzer(cfg.GetVariableConvention(), cfg.GetFunctionConvention(), domain.NewFeedback(cfg), cfg.GetVariableConventionIndex(), cfg.GetFunctionConventionIndex(), cfg.IgnoredSymbols)
 	scanner := service.NewScannerService(analyzer)
 
 	ctx := context.Background()

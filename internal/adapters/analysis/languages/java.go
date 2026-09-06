@@ -13,23 +13,29 @@ type java struct {
 	data types.LanguageData
 }
 
-func NewJavaLanguage(pattern string) types.NodeManagement {
+func NewJavaLanguage(varPattern, funcPattern string) types.NodeManagement {
 	j := &java{
 		data: types.LanguageData{
 			Language: tree.NewLanguage(javaGrammar.Language()),
 		},
 	}
-	j.data.Queries = buildJavaQuery() + j.GetVarAppearancesQuery(pattern)
+	j.data.Queries = buildJavaQuery() + j.GetVarAppearancesQuery(varPattern) + j.GetFuncAppearancesQuery(funcPattern)
 	return j
 }
 
-func (j java) ManageNode(captureNames []string, node tree.QueryCapture, nodeInfo *domain.FunctionData) {
-	// Search the 'alternative' node in the children
+func (j java) ManageNode(captureNames []string, node tree.QueryCapture, nodeInfo *domain.FunctionData, source []byte) {
 	alternative := node.Node.ChildByFieldName("alternative")
-	switch {
-	case captureNames[node.Index] == "variable.name":
-		nodeInfo.UpdateInvalidNames()
+	captureName := captureNames[node.Index]
+
+	if captureName == "variable.name" || captureName == "function.name" {
+		varName := node.Node.Utf8Text(source)
+		if !domain.IsBuiltinSymbol("java", varName) {
+			nodeInfo.UpdateInvalidNames()
+		}
 		return
+	}
+
+	switch {
 	case node.Node.GrammarName() == "binary_expression" && node.Node.Parent().GrammarName() == "variable_declarator":
 		return
 	case alternative != nil && alternative.GrammarName() == "block":
@@ -39,22 +45,17 @@ func (j java) ManageNode(captureNames []string, node tree.QueryCapture, nodeInfo
 }
 
 func buildJavaQuery() string {
-	return "(method_declaration type: (_) name: (_) @function.name " +
+	return "(method_declaration type: (_) name: (_) @function.decl " +
 		"parameters: (formal_parameters) @function.parameters " +
 		"body: (block) @function.body ) @function " +
-		"(constructor_declaration name: (_) @function.name " +
+		"(constructor_declaration name: (_) @function.decl " +
 		"parameters: (_) @function.parameters " +
 		"body: (_) @function.body ) @function" +
-		// Classes, interfaces
 		"(class_declaration name: (_) @model.name) @model" +
 		"(interface_declaration name: (_) @model.name) @model" +
-		// Keywords (+1 complexity)
 		"[" +
-		// Loops
 		"(for_statement) (while_statement) (do_statement) (enhanced_for_statement)" +
-		// If, else-if, else
 		"(if_statement condition: (_) consequence: (_) alternative: (_)?) (ternary_expression)" +
-		// Expressions
 		"((binary_expression left: (_) right: (_)) @bin_exp (#match? @bin_exp \".*(&&|[|]{2}).*\"))" +
 		"(switch_block_statement_group) (catch_clause)" +
 		"] @keyword"
@@ -64,6 +65,11 @@ func (j java) GetLanguageData() types.LanguageData {
 	return j.data
 }
 
-func (j java) GetVarAppearancesQuery(pattern string) string {
-	return fmt.Sprintf("((identifier) @variable.name (#not-match? @variable.name \"^%s|%s$\"))", pattern, domain.AllowNonNamedVar)
+func (j java) GetVarAppearancesQuery(varPattern string) string {
+	return fmt.Sprintf(" (variable_declarator name: (identifier) @variable.name (#not-match? @variable.name \"^%s|%s$\"))", varPattern, domain.AllowNonNamedVar) +
+		fmt.Sprintf(" (formal_parameter name: (identifier) @variable.name (#not-match? @variable.name \"^%s|%s$\"))", varPattern, domain.AllowNonNamedVar)
+}
+
+func (j java) GetFuncAppearancesQuery(funcPattern string) string {
+	return fmt.Sprintf(" (method_declaration name: (identifier) @function.name (#not-match? @function.name \"^%s|%s$\"))", funcPattern, domain.AllowNonNamedVar)
 }

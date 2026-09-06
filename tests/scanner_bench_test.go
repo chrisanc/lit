@@ -22,9 +22,12 @@ func createBenchAnalyzer() domain.Analyzer {
 		convIdx = 1
 	}
 	return languages.NewFileAnalyzer(
-		domain.Conventions[convIdx-1],
+		cfg.GetVariableConvention(),
+		cfg.GetFunctionConvention(),
 		domain.NewFeedback(cfg),
-		convIdx,
+		cfg.GetVariableConventionIndex(),
+		cfg.GetFunctionConventionIndex(),
+		cfg.IgnoredSymbols,
 	)
 }
 

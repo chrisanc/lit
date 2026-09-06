@@ -16,21 +16,36 @@ var osClear = map[string][]string{
 
 // GetNamingConvention - > Asks the user to select their favorite naming convention for the variables.
 func GetNamingConvention() int8 {
-	// Variable to save the value the user selects.
-	var selectedConvention int8
+	return GetVariableNamingConvention()
+}
 
-	// Ask the user for a valid input n times
+// GetVariableNamingConvention asks the user to select their favorite naming convention for variables.
+func GetVariableNamingConvention() int8 {
+	var selectedConvention int8
 	for selectedConvention > 4 || selectedConvention < 1 {
 		clearScreen(osClear[runtime.GOOS][0], osClear[runtime.GOOS][1:]...)
-		fmt.Println("Select a valid naming convention.")
+		fmt.Println("Select a valid naming convention for VARIABLES.")
 		fmt.Println("[1] camelCase")
 		fmt.Println("[2] CamelCase")
 		fmt.Println("[3] CamelCase/camelCase (for languages like Go)")
 		fmt.Println("[4] snake_case")
 		fmt.Scanf("%d", &selectedConvention)
 	}
+	return selectedConvention
+}
 
-	// Return the pattern to use
+// GetFunctionNamingConvention asks the user to select their favorite naming convention for functions and methods.
+func GetFunctionNamingConvention() int8 {
+	var selectedConvention int8
+	for selectedConvention > 4 || selectedConvention < 1 {
+		clearScreen(osClear[runtime.GOOS][0], osClear[runtime.GOOS][1:]...)
+		fmt.Println("Select a valid naming convention for FUNCTIONS / METHODS.")
+		fmt.Println("[1] camelCase")
+		fmt.Println("[2] CamelCase")
+		fmt.Println("[3] CamelCase/camelCase (for languages like Go)")
+		fmt.Println("[4] snake_case")
+		fmt.Scanf("%d", &selectedConvention)
+	}
 	return selectedConvention
 }
 

@@ -22,15 +22,14 @@ func Files() *cobra.Command {
 
 			configAdapter := config.NewJSONAdapter()
 			cfg := configAdapter.GetConfig()
-			convIdx := cfg.NamingConventionIndex
-			if convIdx < 1 || int(convIdx) > len(domain.Conventions) {
-				convIdx = 1
-			}
 			scanner := service.NewScannerService(
 				languages.NewFileAnalyzer(
-					domain.Conventions[convIdx-1],
+					cfg.GetVariableConvention(),
+					cfg.GetFunctionConvention(),
 					domain.NewFeedback(cfg),
-					convIdx,
+					cfg.GetVariableConventionIndex(),
+					cfg.GetFunctionConventionIndex(),
+					cfg.IgnoredSymbols,
 				),
 			)
 

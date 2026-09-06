@@ -12,10 +12,16 @@ func Configuration() *cobra.Command {
 		Use:   "config",
 		Short: "Configure the scan variables.",
 		Run: func(cmd *cobra.Command, args []string) {
-			idx := GetNamingConvention()
+			varIdx := GetVariableNamingConvention()
+			funcIdx := GetFunctionNamingConvention()
 			alerts := GetAlertsConfig()
 			jsonAdapter := config.NewJSONAdapter()
-			newConfig := &domain.Config{NamingConventionIndex: idx, Alerts: alerts}
+			newConfig := &domain.Config{
+				NamingConventionIndex:         varIdx,
+				VariableNamingConventionIndex: varIdx,
+				FunctionNamingConventionIndex: funcIdx,
+				Alerts:                        alerts,
+			}
 			jsonAdapter.SaveConfig(newConfig)
 		},
 	}

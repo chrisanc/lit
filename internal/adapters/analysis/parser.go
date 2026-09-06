@@ -45,6 +45,7 @@ func GetCapturesByQueries(language *tree.Language, queries string, code *[]strin
 
 // CyclicalComplexity Function that calculates the cyclical complexity of the code. Useful for the user feedback.
 func CyclicalComplexity(languageInfo types.NodeManagement, code *[]string) []*domain.FunctionData {
+	sourceBytes := []byte(strings.Join(*code, "\n"))
 	// Get our ast bases in our code and grammar
 	ast := GetAST(code, languageInfo.GetLanguageData().Language)
 	defer ast.Close()
@@ -103,12 +104,12 @@ func CyclicalComplexity(languageInfo types.NodeManagement, code *[]string) []*do
 
 		// If there´s code without a function (JS, Python) before a function definition, we count it as main.
 		case len(Stack) <= 0:
-			languageInfo.ManageNode(query.CaptureNames(), copyOf.Captures[0], Functions[0])
+			languageInfo.ManageNode(query.CaptureNames(), copyOf.Captures[0], Functions[0], sourceBytes)
 
 		// Validate node ranges with the function body. This is the logic for functions inside functions or the main one
 		case Stack[len(Stack)-1].IsTargetInRange(copyOf.Captures[0].Node.StartByte(), copyOf.Captures[0].Node.EndByte()):
 			// + 1 in complexity in the function.
-			languageInfo.ManageNode(query.CaptureNames(), copyOf.Captures[0], Stack[len(Stack)-1])
+			languageInfo.ManageNode(query.CaptureNames(), copyOf.Captures[0], Stack[len(Stack)-1], sourceBytes)
 
 		// The code only gets here when there's a line out of the scope of a function
 		// Remove the most recent element from the stack and add it to the Functions list
@@ -121,7 +122,7 @@ func CyclicalComplexity(languageInfo types.NodeManagement, code *[]string) []*do
 				// If the stack only has the current function, we assign the +1 to the main (default).
 				if len(Stack) <= 1 {
 					isMain = true
-					languageInfo.ManageNode(query.CaptureNames(), copyOf.Captures[0], Functions[0])
+					languageInfo.ManageNode(query.CaptureNames(), copyOf.Captures[0], Functions[0], sourceBytes)
 					break
 				}
 				Functions = append(Functions, Stack[len(Stack)-1])
@@ -129,7 +130,7 @@ func CyclicalComplexity(languageInfo types.NodeManagement, code *[]string) []*do
 			}
 			// At the end, in the verified node, we sum +1 to the complexity.
 			if !isMain {
-				languageInfo.ManageNode(query.CaptureNames(), copyOf.Captures[0], Stack[len(Stack)-1])
+				languageInfo.ManageNode(query.CaptureNames(), copyOf.Captures[0], Stack[len(Stack)-1], sourceBytes)
 			}
 		}
 	}

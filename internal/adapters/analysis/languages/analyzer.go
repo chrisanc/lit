@@ -8,16 +8,22 @@ import (
 )
 
 type FileAnalyzer struct {
-	activePattern         string
-	feedback              *domain.Feedback
-	namingConventionIndex int8
+	varPattern                 string
+	funcPattern                string
+	feedback                   *domain.Feedback
+	variableNamingConventionIndex int8
+	functionNamingConventionIndex int8
+	ignoredSymbols             []string
 }
 
-func NewFileAnalyzer(activePattern string, feedback *domain.Feedback, namingConventionIndex int8) *FileAnalyzer {
+func NewFileAnalyzer(varPattern, funcPattern string, feedback *domain.Feedback, varIdx, funcIdx int8, ignoredSymbols []string) *FileAnalyzer {
 	return &FileAnalyzer{
-		activePattern:         activePattern,
-		feedback:              feedback,
-		namingConventionIndex: namingConventionIndex,
+		varPattern:                 varPattern,
+		funcPattern:                funcPattern,
+		feedback:                   feedback,
+		variableNamingConventionIndex: varIdx,
+		functionNamingConventionIndex: funcIdx,
+		ignoredSymbols:             ignoredSymbols,
 	}
 }
 
@@ -69,21 +75,20 @@ func (analyzer *FileAnalyzer) FixFile(filePath string, code *[]string) int {
 	if activeLanguage == nil {
 		return 0
 	}
-	writer := analysis.NewFileModifier(activeLanguage, analyzer.activePattern, analyzer.namingConventionIndex)
+	writer := analysis.NewFileModifier(activeLanguage, analyzer.varPattern, analyzer.variableNamingConventionIndex)
 	return writer.ModifyVariableName(code)
 }
 
 func (analyzer *FileAnalyzer) getLanguage(ext string) types.NodeManagement {
-	// Save the language for the complexity
 	switch ext {
 	case "js", "jsx":
-		return NewJSLanguage(analyzer.activePattern)
+		return NewJSLanguage(analyzer.varPattern, analyzer.funcPattern)
 	case "go":
-		return NewGolangLanguage(analyzer.activePattern)
+		return NewGolangLanguage(analyzer.varPattern, analyzer.funcPattern)
 	case "java":
-		return NewJavaLanguage(analyzer.activePattern)
+		return NewJavaLanguage(analyzer.varPattern, analyzer.funcPattern)
 	case "py":
-		return NewPythonLanguage(analyzer.activePattern)
+		return NewPythonLanguage(analyzer.varPattern, analyzer.funcPattern)
 	default:
 		return nil
 	}
