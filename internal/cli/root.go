@@ -10,9 +10,9 @@ import (
 // root: commands entry point. Every command is a subcommand of root
 var root = &cobra.Command{
 	Use:     "lit",
-	Short:   "Lit CLI tool for your git projects",
-	Long:    "Lit CLI is a tool made for with love for developers.\nScan your repository and get feedback now.",
-	Version: "1.0 release",
+	Short:   "High-performance AST code analysis and linting CLI for Git repositories",
+	Long:    "Lit is a high-performance CLI tool written in Go that analyzes source code across multiple languages using Tree-Sitter AST parsing.\nIt evaluates cyclomatic complexity, method length, parameter counts, and naming conventions, providing colorized diff previews and SARIF/JSON/Markdown reporting.",
+	Version: "2.0.0",
 }
 
 // Execute function to execute some code

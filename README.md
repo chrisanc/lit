@@ -1,46 +1,177 @@
-# **lit: code linter**
-### **What's 'lit'? ❓**
-CLI Tool developed 100% in Golang in order to help you get quick information about your scripts in determined languages. Thus, it can be really helpful for big work enviroments in order to improve productivity or detect code anomalies, getting warnings about possible dangerous code.
+# Lit: High-Performance Code Analysis and Linting CLI
 
-I used hexagonal architecture on the project, learning about mantainable software architectures.
+Lit is an advanced, high-performance static code analysis and refactoring command-line tool written in Go. Powered by Tree-Sitter Abstract Syntax Tree (AST) parsing and a concurrent worker pool, Lit enables software teams to analyze codebases, enforce naming conventions, detect architectural code smells, and preview automated refactoring changes safely.
 
-### **Top features 🔝**
-With the available commands, you can scan your scripts and get useful feedback that helps you to improve your code.
-The scanning does a search in your working directory looking for the scripts written on the supported languages to scan and calculates the cyclical complexity so you can get feedback based in the metrics configured in the json file.
-It also fix your naming conventions with the flag --fix (this can make some mistakes, so use carefully).
+---
 
-### **Future features (plans)**
-Currently (release v1.0.0), the 'scan' command without flags only scans methods/functions but I'll implement the class scanning so it also detects the bad naming conventions on the properties.
+## Key Features
 
-### **Supported languages for the code scan 💻**
-Current supported languages: **Java, Python,  JavaScript, Go**
+- **AST-Powered Multi-Language Parsing**: Accurate syntactic analysis for Python, JavaScript, JSX, Go, and Java using native Tree-Sitter grammars.
+- **Zero-Memory O(1) Built-in Symbol Protection**: Intelligent protection for built-in functions (`print`, `len`, `console.log`, `append`, `make`, etc.) and external library calls (`os.path.exists`, `json.dumps`), preventing unintended code breakage.
+- **Dual Naming Conventions**: Independent rules for variable declarations versus function/method signatures (`camelCase`, `CamelCase`, `snake_case`, `CamelCase/camelCase`).
+- **Automated Refactoring and Preview**:
+  - `--dry-run`: Generates colorized, ANSI-formatted unified Git diffs showing proposed variable renamings without modifying files on disk.
+  - `--fix`: Automatically applies safe in-place variable renamings across the repository.
+- **Multi-Format Export Engine**: Export scan reports in Text, SARIF (Static Analysis Results Interchange Format), JSON, or Markdown for GitHub Actions and CI/CD pipelines.
+- **Metrics and Code Smell Detection**: Evaluates Cyclomatic Complexity, Method Size (LOC), and Parameter Count against configurable thresholds.
+- **Repository Composition Analysis**: `--loc` flag calculates lines of code and language distribution metrics.
 
-Incoming support for the next languages: **C, C++, C#, TypeScript**
+---
 
-### **Requirements 🧰**
-- 64x C compiler installed (for the file scanner)
-  
-  That's the only requirement to run the project.
+## Supported Languages
 
-### **How can I set it up?**:
-To set the project up in your machine and start scanning your projects, you must:
-- Download the latest release .zip (which contains the executable and the configuration file).
-- Unzip the file and set the directory into the program files of yours system.
-- Create a enviroment variable pointing to the directory path of your system (so you can just write 'lit' to use it).
-- Confirm the changes and start using lit.
+| Language | Extension | AST Grammar Engine | Built-in Protection |
+| :--- | :--- | :--- | :--- |
+| **Go** | `.go` | `tree-sitter-go` | Yes |
+| **Python** | `.py` | `tree-sitter-python` | Yes (includes dunders) |
+| **JavaScript** | `.js` | `tree-sitter-javascript` | Yes |
+| **JSX / React** | `.jsx` | `tree-sitter-javascript` | Yes (includes React hooks) |
+| **Java** | `.java` | `tree-sitter-java` | Yes |
 
-### **Available commands 🌝**
-- *lit files*: The brain and main command of this project. This command itself scans your whole repository and finds the scripts of the supported languages, scanning and looking for possible dangerous functions defined
-  and variables that doesn't match with the naming convention defined.
-  *Command flags*:
-  - *--loc*: This flag allows you to know how much lines of code were written on which language and their percentage of the total lines.
-  - *--fix*: This is a powerful flag which can fix most of the detected naming conventions into the one you wish in your project. This flag can make some mistakes and might not fix every name for safety reasons (code safety).
+---
 
-- *lit config*: With this, you can modify the **config.json** file with a friendly and easy interface. Currently, the only configuration is the current regex for the naming convention you're using.
-  I would recommend to run this command before anything. (the default convention is **CamelCase/camelCase**). Also, you can personalize the minimum parameters, method size or complexity the scanner finds to 
+## Installation
 
-  The available conventions are: **LowerCamelCase, UpperCamelCase, CamelCase, snake_case**.
+### Requirements
+- Go 1.22 or higher
+- GCC or C compiler (required for Tree-Sitter C bindings)
 
-### Why was this developed?
-I developed ***Lit*** because I wanted to reinforce my Go knowledge by creating a useful and meaningful project that developers like me could use in their development projects to keep the code cleaner. Writing clean but efficient code is very important
-because the code will always be read by developers and they must understand it. Developing this project I learned about go routines and how powerful they are, also, I was able to reinforce my Go knowledge and now I feel ready to start bigger projects.
+### Build from Source
+Clone the repository and build the binary:
+
+```bash
+git clone https://github.com/chrisanc/lit.git
+cd lit
+go build -o lit .
+```
+
+To make `lit` globally accessible, copy the binary to your PATH or create a symbol link:
+
+```bash
+sudo mv lit /usr/local/bin/
+```
+
+---
+
+## Usage Guide
+
+### 1. Basic Code Analysis
+Scan the active repository using configured threshold alerts and naming rules:
+
+```bash
+lit scan
+```
+
+### 2. Preview Variable Refactorings (Dry Run)
+Preview all proposed variable name changes as ANSI-colored unified diffs without altering files on disk:
+
+```bash
+lit scan --dry-run
+```
+
+### 3. Apply In-Place Variable Refactorings
+Automatically refactor variable names across the repository to match the active convention:
+
+```bash
+lit scan --fix
+```
+
+### 4. Exporting Reports for CI/CD Pipelines
+Export findings to SARIF for GitHub Security Code Scanning integration:
+
+```bash
+lit scan --format sarif --output report.sarif
+```
+
+Export findings to JSON or Markdown:
+
+```bash
+lit scan --format json --output report.json
+lit scan --format markdown --output report.md
+```
+
+### 5. Repository Language Statistics
+Calculate total lines of code and percentage breakdown by language:
+
+```bash
+lit scan --loc
+```
+
+### 6. Interactive Configuration Setup
+Launch the terminal UI to configure variable and function naming conventions as well as alert thresholds:
+
+```bash
+lit config
+```
+
+---
+
+## Configuration (`config.json`)
+
+Lit stores repository configuration in `config.json` alongside the executable. Below is an annotated example configuration:
+
+```json
+{
+  "activeNamingConventionIndex": 3,
+  "activeVariableNamingConventionIndex": 1,
+  "activeFunctionNamingConventionIndex": 4,
+  "ignoredSymbols": ["vendor_", "_unused", "TEMP_"],
+  "alerts": {
+    "parameters": {
+      "info": 5,
+      "warning": 8,
+      "error": 10
+    },
+    "complexity": {
+      "info": 10,
+      "warning": 15,
+      "error": 20
+    },
+    "method-length": {
+      "info": 120,
+      "warning": 150,
+      "error": 180
+    }
+  }
+}
+```
+
+### Naming Convention Index Mapping
+- `1`: `camelCase` (`LowerCamelCase`)
+- `2`: `CamelCase` (`UpperCamelCase`)
+- `3`: `CamelCase/camelCase` (Go-style: `CamelCase` for exported symbols, `camelCase` for unexported)
+- `4`: `snake_case` (`SnakeCase`)
+
+---
+
+## Architecture Overview
+
+Lit is architected around **Clean Architecture / Hexagonal Architecture** principles, enforcing strict decoupling between domain models, port interfaces, and adapter implementations:
+
+```
+lit/
+├── cmd/               # CLI Entry Point
+├── internal/
+│   ├── domain/        # Pure Domain Entities, Models, Rules, and Built-in Tables
+│   ├── service/       # Use Cases: Scanner Service, Worker Pool, Diff Engine
+│   ├── adapters/
+│   │   ├── analysis/  # Tree-Sitter AST Parsers and Language Rules
+│   │   ├── config/    # JSON Configuration Persistence Adapter
+│   │   └── exporter/  # Exporters: Text, SARIF, JSON, Markdown
+│   └── cli/           # Cobra Command Handlers & Terminal UI
+└── tests/             # Unit and Integration Test Suite
+```
+
+For comprehensive technical details on internal design, data flow, and concurrency model, refer to [ARCHITECTURE.md](ARCHITECTURE.md).
+
+---
+
+## Contributing
+
+Contributions are welcome. Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for build instructions, code quality standards, and guidance on adding support for new programming languages.
+
+---
+
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information.

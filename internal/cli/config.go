@@ -10,7 +10,8 @@ import (
 func Configuration() *cobra.Command {
 	return &cobra.Command{
 		Use:   "config",
-		Short: "Configure the scan variables.",
+		Short: "Interactively configure variable/function naming conventions and threshold alerts",
+		Long:  "Config launches an interactive terminal prompt to set naming conventions for variables and functions independently,\nas well as thresholds for parameter count, cyclomatic complexity, and method size in config.json.",
 		Run: func(cmd *cobra.Command, args []string) {
 			varIdx := GetVariableNamingConvention()
 			funcIdx := GetFunctionNamingConvention()

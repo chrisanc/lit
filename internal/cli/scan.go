@@ -12,7 +12,8 @@ import (
 func Files() *cobra.Command {
 	command := &cobra.Command{
 		Use:   "scan",
-		Short: "Scan the repository files (must include a .gitignore) and retrieves data from them",
+		Short: "Scan repository source files and analyze complexity, metrics, and naming conventions",
+		Long:  "Scan traverses repository source files in parallel using Tree-Sitter AST parsing.\nIt evaluates cyclomatic complexity, method length, parameter thresholds, and variable/function naming conventions.\nReports can be output as text, SARIF, JSON, or Markdown.",
 		Run: func(cmd *cobra.Command, args []string) {
 			loc, _ := cmd.Flags().GetBool("loc")
 			fix, _ := cmd.Flags().GetBool("fix")
@@ -48,12 +49,11 @@ func Files() *cobra.Command {
 			}
 		},
 	}
-	command.Flags().Bool("loc", false, "Retrieves the languages used with statistics")
-	command.Flags().Bool("fix", false, "Fixes up the variables with an invalid naming conventions."+
-		"It only one convention to another\nExample: if you have variables snake_case and the active convention is camelCase, it's converted.")
-	command.Flags().Bool("dry-run", false, "Preview variable naming fixes as unified color git diffs without modifying files on disk")
-	command.Flags().StringP("format", "f", "text", "Output report format (text, sarif, json, markdown)")
-	command.Flags().StringP("output", "o", "", "Path to write report output file (defaults to stdout)")
+	command.Flags().Bool("loc", false, "Analyze repository composition and print lines of code statistics by language")
+	command.Flags().Bool("fix", false, "Automatically refactor variable names that violate configured naming conventions")
+	command.Flags().Bool("dry-run", false, "Preview variable naming refactorings as unified ANSI git diffs without modifying files on disk")
+	command.Flags().StringP("format", "f", "text", "Specify output report format: text, sarif, json, markdown")
+	command.Flags().StringP("output", "o", "", "Write report output to a specified file path (defaults to stdout)")
 
 	return command
 }
